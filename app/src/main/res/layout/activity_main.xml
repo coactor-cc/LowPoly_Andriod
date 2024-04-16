@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical">
+
+    <TextView
+        android:text="before"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp" />
+
+    <ImageButton
+        android:id="@+id/img_before"
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:background="#0000"
+        android:src="@drawable/lenna"
+        android:scaleType="centerInside"
+        android:onClick="loadPic"
+        />
+
+    <TextView
+        android:text="after"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp" />
+
+    <ImageView
+        android:id="@+id/img_after"
+        android:layout_width="260dp"
+        android:layout_height="260dp"
+        android:scaleType="centerInside"/>
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal">
+        <TextView
+            android:text="blur"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"/>
+
+        <SeekBar
+            android:id="@+id/sbar_blur"
+            android:layout_width="200dp"
+            android:layout_height="match_parent"
+            android:max="31"
+            android:min="1"/>
+        <TextView
+            android:id="@+id/text_blur_value"
+            android:text="blur_value"
+            android:layout_width="100dp"
+            android:layout_height="match_parent"/>
+    </LinearLayout>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal">
+        <TextView
+            android:text="sobel"
+            android:layout_width="60dp"
+            android:layout_height="match_parent"/>
+        <SeekBar
+            android:id="@+id/sbar_sobel_threshold"
+            android:layout_width="200dp"
+            android:layout_height="20dp"
+            android:max="150"
+            android:min="1"/>
+        <TextView
+            android:id="@+id/text_sobel_threshold"
+            android:text="sobel_threshold"
+            android:layout_width="100dp"
+            android:layout_height="match_parent"/>
+    </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal">
+            <TextView
+                android:text="anchor"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"/>
+            <SeekBar
+                android:id="@+id/sbar_anchor_threshold"
+                android:layout_width="200dp"
+                android:layout_height="20dp"
+                android:max="100"
+                android:min="1"/>
+            <TextView
+                android:id="@+id/text_anchor_threshold"
+                android:text="anchor_threshold"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"/>
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal">
+            <TextView
+                android:text="min_dist"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"/>
+            <SeekBar
+                android:id="@+id/sbar_min_dist"
+                android:layout_width="200dp"
+                android:layout_height="20dp"
+                android:max="100"
+                android:min="1"/>
+            <TextView
+                android:id="@+id/text_min_dist"
+                android:text="tri_min_dist"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"/>
+        </LinearLayout>
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal">
+            <TextView
+                android:text="poisson_r"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"/>
+            <SeekBar
+                android:id="@+id/sbar_poisson_r"
+                android:layout_width="200dp"
+                android:layout_height="20dp"
+                android:max="50"
+                android:min="1"/>
+            <TextView
+                android:id="@+id/text_poisson_r"
+                android:text="poisson_r"
+                android:layout_width="100dp"
+                android:layout_height="match_parent"/>
+        </LinearLayout>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal">
+
+        <Button
+            android:id="@+id/btn_bit_not"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:onClick="bitNot"
+            android:text="bitNot" />
+
+        <Button
+            android:id="@+id/blur"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:onClick="blur"
+            android:text="Blur"
+            style="?android:attr/buttonBarButtonStyle"/>
+
+        <Button
+            android:id="@+id/gray"
+            style="?android:attr/buttonBarButtonStyle"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:onClick="gray"
+            android:text="Gray" />
+
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal">
+
+        <Button
+            android:id="@+id/sobel"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:onClick="sobel"
+            android:text="Sobel"
+            style="?android:attr/buttonBarButtonStyle"/>
+        <Button
+            android:id="@+id/ED"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:onClick="ED"
+            android:text="ED"
+            style="?android:attr/buttonBarButtonStyle"/>
+        <Button
+            android:id="@+id/Poly"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:onClick="Poly"
+            android:text="Poly"
+            style="?android:attr/buttonBarButtonStyle"/>
+    </LinearLayout>
+
+
+</LinearLayout>
+
