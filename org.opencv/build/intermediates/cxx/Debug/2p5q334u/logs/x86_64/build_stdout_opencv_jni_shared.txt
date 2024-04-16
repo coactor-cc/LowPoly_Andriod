@@ -1,0 +1,2 @@
+ninja: Entering directory `C:\Users\coactor\AndroidStudioProjects\devtest\org.opencv\.cxx\Debug\2p5q334u\x86_64'
+ninja: no work to do.
