@@ -1,14 +1,16 @@
 package com.example.devtest;
 
 
-
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+
+
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -23,24 +25,31 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.imgproc.Subdiv2D;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Set;
+
 
 public class MainActivity extends AppCompatActivity {
+    ActivityResultLauncher<Intent> getImageLauncher;
+    MatOP matOP=new MatOP();
+    Polygon polygon=new Polygon();
     Mat src;
     ImageView img_before,img_after;
     SeekBar seekbar_blur,seekbar_sobel_threshold,seekbar_anchor_threshold,seekbar_min_dist,seekbar_poisson_r;
     TextView text_blur_value,text_sobel_threshold,text_anchor_threshold,text_min_dist,text_poisson_r;
     int KERNEL_LENGTH=5,SOBEL_THRESHOLD=50,ANCHOR_THRESHOLD=20,MIN_DIST,POISSON_R=18;
 
-    private static final int REQUEST_CODE_GET_IMAGE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,50 +57,49 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         initOpenCV();
         initView();
-    }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        src.release();
+
     }
 
     private void initOpenCV() {
         if(OpenCVLoader.initDebug()){
             Toast.makeText(this,"OpenCV loading success",Toast.LENGTH_SHORT).show();
-        }
-        else{
+        } else{
             Toast.makeText(this,"OpenCV loading fail",Toast.LENGTH_SHORT).show();
         }
     }
 
     private void initView() {
-        try {//导入src
-            src=Utils.loadResource(this, R.drawable.lenna);
-            //BGR->RGB
-            Imgproc.cvtColor(src,src,Imgproc.COLOR_BGR2RGB);
+        //init src
+        try {
+            src=Utils.loadResource(this, R.drawable.lenna);//导入src
+            Imgproc.cvtColor(src,src,Imgproc.COLOR_BGR2RGB);//BGR->RGB
         }catch (IOException e){
             e.printStackTrace();
         }
+        // 创建 ActivityResultLauncher 实例
+        getImageLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                this::handleActivityResult
+        );
         //object bound
          img_before=findViewById(R.id.img_before);
          img_after=findViewById(R.id.img_after);
 
-         seekbar_blur =findViewById(R.id.sbar_blur);
+         seekbar_blur =findViewById(R.id.seekbar_blur);
          text_blur_value=findViewById(R.id.text_blur_value);
 
-         seekbar_sobel_threshold=findViewById(R.id.sbar_sobel_threshold);
+         seekbar_sobel_threshold=findViewById(R.id.seekbar_sobel_threshold);
          text_sobel_threshold=findViewById(R.id.text_sobel_threshold);
 
-         seekbar_anchor_threshold=findViewById(R.id.sbar_anchor_threshold);
+         seekbar_anchor_threshold=findViewById(R.id.seekbar_anchor_threshold);
          text_anchor_threshold=findViewById(R.id.text_anchor_threshold);
 
-         seekbar_min_dist=findViewById(R.id.sbar_min_dist);
+         seekbar_min_dist=findViewById(R.id.seekbar_min_dist);
          text_min_dist=findViewById(R.id.text_min_dist);
 
-         seekbar_poisson_r=findViewById(R.id.sbar_poisson_r);
+         seekbar_poisson_r=findViewById(R.id.seekbar_poisson_r);
          text_poisson_r=findViewById(R.id.text_poisson_r);
-
         //seekbar initial progress
          seekbar_blur.setProgress(KERNEL_LENGTH);
          text_blur_value.setText(String.format(Locale.US,"%4d", KERNEL_LENGTH));
@@ -104,8 +112,7 @@ public class MainActivity extends AppCompatActivity {
          text_min_dist.setText(String.format(Locale.US,"%4d", MIN_DIST));
          seekbar_poisson_r.setProgress(POISSON_R);
          text_poisson_r.setText(String.format(Locale.US,"%4d", POISSON_R));
-
-
+         //seekBarChangeListener
         seekbar_blur.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -199,96 +206,97 @@ public class MainActivity extends AppCompatActivity {
     public void loadPic(View view) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*"); // 设置意图为获取图片类型的数据
-        startActivityForResult(intent, REQUEST_CODE_GET_IMAGE); // REQUEST_CODE_GET_IMAGE是你自定义的请求码
+        getImageLauncher.launch(intent); // 使用 launch 方法启动 Activity
+//        startActivityForResult(intent, REQUEST_CODE_GET_IMAGE); // REQUEST_CODE_GET_IMAGE是你自定义的请求码
     }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_GET_IMAGE && resultCode == RESULT_OK) {
+    private void handleActivityResult(ActivityResult result) {
+        if (result.getResultCode() == RESULT_OK) {
+            Intent data = result.getData();
             if (data != null) {
-                Uri selectedImage = data.getData(); // 获取用户选择的图片URI
-                // 在这里处理selectedImage，比如显示它或者上传到服务器
+                Uri selectedImage = data.getData();
                 try {
                     // 使用ContentResolver和BitmapFactory来获取图片的Bitmap
                     Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImage);
-                    // 现在你可以使用bitmap来显示图片或进行其他操作
-                    Utils.bitmapToMat(bitmap,src);
-                    //创建的是RGBA的map RGBA->RGB 否则按位非会把透明的拉满
-                    Imgproc.cvtColor(src,src,Imgproc.COLOR_RGBA2RGB);
-                    if((int)(0.02*(src.width()+src.height()))<=100) {//make sure not overflow
+                    Utils.bitmapToMat(bitmap, src);
+                    Imgproc.cvtColor(src, src, Imgproc.COLOR_RGBA2RGB);//创建的是RGBA的map RGBA->RGB 否则按位非会把透明的拉满
+                    if ((int) (0.02 * (src.width() + src.height())) <= 100) {//make sure not overflow
                         MIN_DIST = (int) (0.02 * (src.width() + src.height()));//auto init value
                         seekbar_min_dist.setProgress(MIN_DIST);
-                        text_min_dist.setText(String.format(Locale.US,"%4d", MIN_DIST));
+                        text_min_dist.setText(String.format(Locale.US, "%4d", MIN_DIST));
                     }
-                    showMat(img_before, src);//自定义函数
-                } catch (IOException e) {
+                    matOP.showMat(img_before, src);//show Image
+                }catch (IOException e) {
                     e.printStackTrace();
                     Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
                 }
             }
         }
     }
-
-    void showMat(ImageView view,Mat mat){
-        Bitmap bitmap=Bitmap.createBitmap(mat.cols(), mat.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(mat,bitmap);
-        view.setImageBitmap(bitmap);
-    }
-
-    void drawPoints(Mat mat,ArrayList<Point> points,Scalar color){
-        // make sure mat CV_8UC3
-        for (int i=0;i<points.size();i++) {
-            Imgproc.circle(mat, points.get(i), 1, color, -1);
-        }
-    }
-
-    void drawEdges(Mat mat,ArrayList<ArrayList<Point>> edges,Scalar color){
-        // make sure mat CV_8UC3
-        for(int i=0;i<edges.size();i++){
-            for(int j=0;j<edges.get(i).size();j++){
-                Imgproc.circle(mat ,edges.get(i).get(j), 1, color, -1);
+    Mat computeFeatureMap(Mat distanceMap) {
+        Mat featureMap = new Mat(distanceMap.size(), distanceMap.type());
+        // m=Li/2 Li=0.02*(Lw+Lh)
+        double m =  0.01*(src.width()+src.height()); //
+        // 获取距离图的宽度和高度
+        int width = distanceMap.width();
+        int height = distanceMap.height();
+        // 遍历距离图的每一个像素
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                // 获取当前点的距离值
+                double distanceValue = distanceMap.get(y, x)[0];
+                // 根据公式计算特征值
+                double featureValue;
+                boolean b=(int)(distanceValue/2)%2==0;
+                if (b) {
+                    featureValue = 255.0 / m * (distanceValue%m);
+                }
+                else {
+                    featureValue = 255.0 / m * (1 - (distanceValue % m));
+                }
+                // 将计算出的特征值设置到特征图的相应位置->
+                featureMap.put(y, x, featureValue);
             }
         }
-
+        return featureMap;
     }
-    Bitmap drawLowPoly(Bitmap bitmap, ArrayList<Triangle> triangles){
-        Canvas canvas = new Canvas(bitmap);
-        Paint paint = new Paint();
-        paint.setStyle(Paint.Style.FILL);
-        for(Triangle t:triangles){
-            double meanX=(t.p1.x+t.p2.x+t.p3.x)/3;
-            double meanY=(t.p1.y+t.p2.y+t.p3.y)/3;
-            int color=bitmap.getPixel((int)meanX,(int)meanY);
-            paint.setColor(color);
-            Path path = new Path();
-            path.moveTo((float) t.p1.x, (float) t.p1.y); // 起始点
-            path.lineTo((float) t.p2.x, (float) t.p2.y); // 直线到点(x2, y2)
-            path.lineTo((float) t.p3.x, (float) t.p3.y); // 再到点(x3, y3)
-            path.close(); // 结束路径并闭合形状
-            canvas.drawPath(path, paint);
-        }
-        return bitmap;
-    }
-
+    // button onclick activities
     public void bitNot(View view) {
         Mat dst=new Mat();
         Core.bitwise_not(src,dst); //bit_not OP
-        showMat(img_after,dst);
-        dst.release();
+        matOP.showMat(img_after,dst);
     }
 
     public void blur(View view) {
         Mat dst=new Mat();
         Imgproc.GaussianBlur(src,dst, new Size(KERNEL_LENGTH, KERNEL_LENGTH),0,0); //高斯模糊
-        showMat(img_after,dst);//转换成bitmap并显示
-        dst.release(); //mat回收
+        matOP.showMat(img_after,dst);//转换成bitmap并显示
     }
 
     public void gray(View view) {
         Mat dst=new Mat();
         Imgproc.cvtColor(src,dst,Imgproc.COLOR_RGB2GRAY);//BGR->GRAY
-        showMat(img_after,dst);//转换成bitmap并显示
-        dst.release();          //mat回收
+        matOP.showMat(img_after,dst);//转换成bitmap并显示
+    }
+
+    public void distance(View view) {
+        EdgeDrawing ed=new EdgeDrawing(src);
+        ed.getPictureEdges(KERNEL_LENGTH,SOBEL_THRESHOLD,ANCHOR_THRESHOLD);
+        Mat edge_map=new Mat(src.size(), CvType.CV_8UC1,new Scalar(255));//8UC1
+        matOP.drawCurveEdges(edge_map,ed.m_edges,new Scalar(0));
+        Mat distanceMap=new Mat(src.size(), CvType.CV_32FC1,new Scalar(0));//CV_32FC1
+        // 计算距离映射  input Mat 8UC1  out Mat 8UC1 黑色为边缘 白色为背景
+        Imgproc.distanceTransform(edge_map, distanceMap, Imgproc.DIST_L2, 5);
+        // 计算feature map
+        Mat featureMap=computeFeatureMap(distanceMap);
+        //show feature
+        Core.normalize(featureMap, featureMap, 0, 255, Core.NORM_MINMAX, CvType.CV_8U);
+        matOP.showMat(img_after,featureMap);
+        featureMap.release();
+        //show distance
+        Core.normalize(distanceMap, distanceMap, 0, 255, Core.NORM_MINMAX, CvType.CV_8U);
+        matOP.showMat(img_before,distanceMap);
+        edge_map.release();
+        distanceMap.release();
     }
 
 
@@ -296,14 +304,12 @@ public class MainActivity extends AppCompatActivity {
         final int width=src.width();
         final int height=src.height();
         final double VERTICAL =1,HORIZONTAL=2;
-
         // operation
         EdgeDrawing ed=new EdgeDrawing(src);
         Mat gray=ed.getGaussianBlurImage(KERNEL_LENGTH);
         gray=ed.getGrayImage(gray);
         ed.getGradientAndDirectionMap(gray,SOBEL_THRESHOLD);
         Toast.makeText(this,"Convert finish",Toast.LENGTH_SHORT).show();
-
         //show recolor map
         Bitmap mapD=Bitmap.createBitmap (width,height,Bitmap.Config.ARGB_8888);
         Bitmap mapG=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);
@@ -324,7 +330,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         //test for gray m_gradientImg not black-write
-//        showMat(img_after,ed.m_gradientImg);
+//        matOP.showMat(img_after,ed.m_gradientImg);
         //out distance map and threshold gradient map
         img_before.setImageBitmap(mapD);
         img_after.setImageBitmap(mapG);
@@ -333,67 +339,109 @@ public class MainActivity extends AppCompatActivity {
 
     public void ED(View view) {
         EdgeDrawing ed=new EdgeDrawing(src);
-        Polygon polygon=new Polygon();
         ArrayList<ArrayList<Point>>edges=ed.getPictureEdges(KERNEL_LENGTH,SOBEL_THRESHOLD,ANCHOR_THRESHOLD);
         ArrayList<Point> constrained_point=polygon.DP_Alg(edges,MIN_DIST);
-        constrained_point=polygon.Poisson(constrained_point,src.width(),src.height(),POISSON_R);
         Toast.makeText(this,"Convert finish",Toast.LENGTH_SHORT).show();
-
 //        //show anchor
 //        Mat anchor_map=new Mat(src.size(), src.type(),new Scalar(0));//U8C3
 //        drawPoints(anchor_map,ed.m_anchor, new Scalar(255, 255, 255));
-//        showMat(img_before,anchor_map);
-//        anchor_map.release();
+//        matOP.showMat(img_before,anchor_map);
         //show edge
         Mat edge_map=new Mat(src.size(), CvType.CV_8UC3,new Scalar(0));//U8C3
-        drawEdges(edge_map,ed.m_edges,new Scalar(200,200,200));
-        showMat(img_before,edge_map);
+        matOP.drawCurveEdges(edge_map,ed.m_edges,new Scalar(200,200,200));
+        matOP.showMat(img_before,edge_map);
         edge_map.release();
         //show edge+constrained points
         Mat edge_point=new Mat(src.size(), CvType.CV_8UC3,new Scalar(0));//U8C3
-        drawEdges(edge_point,ed.m_edges,new Scalar(127,127,127));
-        drawPoints(edge_point,constrained_point,new Scalar(0,255,30));
-        showMat(img_after,edge_point);
+        matOP.drawCurveEdges(edge_point,ed.m_edges,new Scalar(127,127,127));
+        matOP.drawPoints(edge_point,constrained_point,new Scalar(0,255,30));
+        matOP.showMat(img_after,edge_point);
         edge_point.release();
     }
 
     public void Poly(View view) {
         EdgeDrawing ed=new EdgeDrawing(src);
-        Polygon polygon=new Polygon();
         Delaunay delaunay=new Delaunay();
         ArrayList<ArrayList<Point>>edges=ed.getPictureEdges(KERNEL_LENGTH,SOBEL_THRESHOLD,ANCHOR_THRESHOLD);
         ArrayList<Point> constrained_point=polygon.DP_Alg(edges,MIN_DIST);
-        constrained_point=polygon.Poisson(constrained_point,src.width(),src.height(),POISSON_R);
-        // 去重
-        Set<Point> set = new HashSet<>(constrained_point);
-        constrained_point.clear(); // 清空原列表
-        constrained_point.addAll(set); // 将去重后的元素添加回列表
-
-//      //test delaunay data
-//        ArrayList<Point> test_point=new ArrayList<>();
-//        test_point.add(new Point(src.width()/2,src.height()/2));
-//        test_point.add(new  Point(src.width()/4,src.height()/4));
-        ArrayList<Triangle> triangles=delaunay.Watson(src.width(),src.height(),constrained_point);//->instead test_point
+        ArrayList<Point>all_points=new ArrayList<>(constrained_point);
+        //add poisson noisy
+        ArrayList<Point>inner_points=polygon.Poisson(constrained_point,src.width(),src.height(),POISSON_R);
+        all_points.addAll(inner_points);
+        ArrayList<Triangle> triangles=delaunay.Watson(src.width(),src.height(),all_points);//->instead test_point
         Toast.makeText(this,"Convert finish",Toast.LENGTH_SHORT).show();
         //show triangles
-        Bitmap triangle_bitmap=Bitmap.createBitmap(src.cols(), src.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(src,triangle_bitmap);
-        Canvas canvas = new Canvas(triangle_bitmap);
-        Paint paint = new Paint();
-        paint.setColor(Color.BLUE); // 设置线条颜色
-        paint.setStrokeWidth(1); // 设置线条粗细
-        paint.setStyle(Paint.Style.STROKE); // 设置线条样式为实线
-        for (Triangle t:triangles){
-            canvas.drawLine((float) t.e12.start.x,(float) t.e12.start.y,(float) t.e12.end.x,(float) t.e12.end.y,paint);
-            canvas.drawLine((float) t.e23.start.x,(float) t.e23.start.y,(float) t.e23.end.x,(float) t.e23.end.y,paint);
-            canvas.drawLine((float) t.e31.start.x,(float) t.e31.start.y,(float) t.e31.end.x,(float) t.e31.end.y,paint);
-        }
-        img_before.setImageBitmap(triangle_bitmap);
+        Mat triangle_map=src.clone();
+        matOP.drawTriangles(triangle_map,triangles,new Scalar(20,20,200));
+        matOP.showMat(img_before,triangle_map);
         //show low poly
-        Bitmap lowPoly=Bitmap.createBitmap(src.cols(), src.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(src,lowPoly);
-        lowPoly= drawLowPoly(lowPoly,triangles);
-        img_after.setImageBitmap(lowPoly);
+        Mat lowPoly=src.clone();
+        matOP.fillTriangles(lowPoly,triangles,1);
+        matOP.showMat(img_after,lowPoly);
+    }
 
+    public void voronoi(View view) {
+        EdgeDrawing ed=new EdgeDrawing(src);
+        ArrayList<ArrayList<Point>>edges=ed.getPictureEdges(KERNEL_LENGTH,SOBEL_THRESHOLD,ANCHOR_THRESHOLD);
+        ArrayList<Point> constrained_point=polygon.DP_Alg(edges,MIN_DIST);
+        ArrayList<Point>inner_points=polygon.Poisson(constrained_point,src.width(),src.height(),POISSON_R);
+        ArrayList<Point>all_points=new ArrayList<>(constrained_point);
+        //Lloyd
+        int Lloyd_Iteration=5;
+        for(int i=0;i<Lloyd_Iteration;i++) {
+            inner_points = polygon.Lloyd(inner_points, constrained_point,src.width(), src.height());
+        }
+        //add poisson noisy
+        all_points.addAll(inner_points);
+        //delaunay
+        Delaunay delaunay=new Delaunay();
+        ArrayList<Triangle> triangles=delaunay.Watson(src.width(),src.height(),all_points);//->instead test_point
+        Toast.makeText(this,"Convert finish",Toast.LENGTH_SHORT).show();
+        //show voronoi
+        Mat voronoiMap=src.clone();
+        Subdiv2D subdiv2D=new Subdiv2D(new Rect(0, 0,src.width(), src.height()));
+        subdiv2D.insert(new MatOfPoint2f(all_points.toArray(new Point[0])));
+        matOP.drawVoronoi(voronoiMap,subdiv2D);
+        matOP.showMat(img_before,voronoiMap);
+        //show low poly after relaxing
+        Mat lowPoly=src.clone();
+        matOP.fillTriangles(lowPoly,triangles,1);
+        matOP.showMat(img_after,lowPoly);
+    }
+
+    public void share(View view) {
+        // 创建图片文件
+        String fileName = "shared_image.png";
+        File outputDir = getExternalFilesDir(null); // 或者其他你选择的目录
+        File outputFile = new File(outputDir, fileName);
+        // 存入src的图片
+        Bitmap bitmap=Bitmap.createBitmap(src.cols(), src.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(src,bitmap);
+        try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);//压缩为PNG
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+        // 创建分享Intent
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("image/png");
+
+        // 使用FileProvider获取URI
+            Uri contentUri = FileProvider.getUriForFile(
+                    this,
+                    "${applicationId}.file.provider", // 替换为你的FileProvider的authorities
+                    outputFile
+            );
+            shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+            // 添加FLAG_GRANT_READ_URI_PERMISSION标志，允许目标应用读取文件
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        // 启动分享
+        startActivity(Intent.createChooser(shareIntent, "Share Image"));
+    }
+
+    public void change(View view) {
+        Intent intent=new Intent(this,ShareActivity.class);
+        startActivity(intent);
     }
 }

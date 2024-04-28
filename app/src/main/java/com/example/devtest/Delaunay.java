@@ -35,6 +35,11 @@ class Triangle{
        e23=new Edge(p2,p3);
        e31=new Edge(p3,p1);
     }
+    Point getCentroid(){
+        double centroidX = (p1.x + p2.x + p3.x) / 3.0;
+        double centroidY = (p1.y + p2.y + p3.y) / 3.0;
+        return new Point(centroidX, centroidY);
+    }
 
     boolean circleContain(Point p){
             double ab = p1.norm2();
@@ -62,78 +67,6 @@ class Triangle{
 }
 
 public class Delaunay {
-    // the same  alg
-//   ArrayList<Triangle> Lawson(ArrayList<Point> vertices) {
-//       // Determinate the super triangle
-//       double minX = vertices.get(0).x;
-//       double minY = vertices.get(0).y;
-//       double maxX = minX;
-//       double maxY = minY;
-//
-//       for (int i = 0; i < vertices.size(); ++i) {
-//           if (vertices.get(i).x < minX) minX = vertices.get(i).x;
-//           if (vertices.get(i).y < minY) minY = vertices.get(i).y;
-//           if (vertices.get(i).x > maxX) maxX = vertices.get(i).x;
-//           if (vertices.get(i).y > maxY) maxY = vertices.get(i).y;
-//       }
-//
-//       double dx = maxX - minX;// width
-//       double dy = maxY - minY;//length
-//       double deltaMax = Math.max(dx, dy); //max(width,length)
-//       double midX = (long) ((minX + maxX) / 2);//除去小数
-//       double midY = (long) ((minY + maxY) / 2);//除去小数
-//
-//       Point p1 = new Point(midX - 20 * deltaMax, midY - deltaMax);
-//       Point p2 = new Point(midX, midY + 20 * deltaMax);
-//       Point p3 = new Point(midX + 20 * deltaMax, midY - deltaMax);
-//       // save initial super triangle
-//       ArrayList<Triangle>m_triangles=new ArrayList<>();
-//       m_triangles.add(new Triangle(p1, p2, p3));
-//
-//       for (Point p:vertices) {
-//           //find bad triangle
-//           ArrayList<Triangle> bad_triangles=new ArrayList<>();
-//           ArrayList<Edge> process_Edges=new ArrayList<>();
-//           for (Triangle t : m_triangles) {
-//               if (t.circleContain(p))// 外接圆中包含其他点
-//               {
-//                   bad_triangles.add(t);
-//                   process_Edges.add(t.e12);
-//                   process_Edges.add(t.e23);
-//                   process_Edges.add(t.e31);
-//               }
-//           }
-//           //delete bad triangles
-//           m_triangles.removeAll(bad_triangles);
-//           ArrayList<Edge> bad_edges=new ArrayList<>();
-//           //find bad edge
-//           for(int i=0;i<process_Edges.size();i++){
-//               for(int j=i+1;j<process_Edges.size();j++){
-//                   if(process_Edges.get(i).equals(process_Edges.get(j)))
-//                   {
-//                       bad_edges.add(process_Edges.get(i));
-//                       bad_edges.add(process_Edges.get(j));
-//                   }
-//               }
-//           }
-//           //del bad edge
-//           process_Edges.removeAll(bad_edges);
-//           // add edges two point + the iterator p  as new triangle
-//           for (Edge e:process_Edges){
-//               m_triangles.add(new Triangle(e.start,e.end,p));
-//           }
-//       }
-//       //del triangle contains super point
-//       ArrayList<Triangle>remove=new ArrayList<>();
-//       for (Triangle t:m_triangles){
-//           if (t.contain(p1)||t.contain(p2)||t.contain(p3)){
-//               remove.add(t);
-//           }
-//       }
-//       m_triangles.removeAll(remove);
-//       return m_triangles;
-//   }
-
     ArrayList<Triangle> Watson(int width,int height,ArrayList<Point> vertices) {
 
         Point p1=new Point(0,0);

@@ -12,25 +12,20 @@ import java.util.ArrayList;
 
 public class EdgeDrawing {
    final int width,height;
-
    final double VERTICAL =1,HORIZONTAL=2;
-   public Mat m_originalImg,m_gradientImg,m_directionImg;
+   Mat m_originalImg,m_gradientImg,m_directionImg;
    ArrayList<Point> m_anchor;
    ArrayList< ArrayList<Point>> m_edges;
 
 
    EdgeDrawing(Mat src){//constructor
-
       m_originalImg=src;
-      m_gradientImg=new Mat(m_originalImg.height(),m_originalImg.width(), CvType.CV_32FC1);
-      m_directionImg=new Mat(m_originalImg.height(),m_originalImg.width(),CvType.CV_32FC1);
-      m_anchor=new ArrayList<>();
-      m_edges=new ArrayList<>();
-      m_gradientImg.setTo(new Scalar(0));
-      m_directionImg.setTo(new Scalar(0));
       width = m_originalImg.width();
       height= m_originalImg.height();
-
+      m_gradientImg=new Mat(height,width, CvType.CV_32FC1,new Scalar(0));
+      m_directionImg=new Mat(height,width,CvType.CV_32FC1,new Scalar(0));
+      m_anchor=new ArrayList<>();
+      m_edges=new ArrayList<>();
    }
 
    Mat getGaussianBlurImage(int kernel_size){
@@ -53,7 +48,7 @@ public class EdgeDrawing {
       double gy_data;
       double g_data;
 
-      for(int row=0; row<height; row++) {
+      for(int row = 0; row<height; row++) {
          for (int col = 0; col < width; col++) {
             gx_data=Math.abs(gx.get(row,col)[0]);// abs( gradient x direction)
             gy_data=Math.abs(gy.get(row,col)[0]);// abs( gradient y direction)
@@ -68,14 +63,10 @@ public class EdgeDrawing {
             }
          }
       }
-
-      gx.release();
-      gy.release();
    }
    void getAnchors(int threshold){
-      for(int row=1; row<height-1; row++) {
+      for(int row = 1; row<height-1; row++) {//to avoid out of range
          for (int col = 1; col < width-1; col++) {
-            //内存泄漏在边缘点,我直接修改回来
             if(m_directionImg.get(row,col)[0]==HORIZONTAL){
                if(m_gradientImg.get(row,col)[0]-m_gradientImg.get(row,col-1)[0]>=threshold
                        &&m_gradientImg.get(row,col)[0]-m_gradientImg.get(row,col+1)[0]>=threshold){
@@ -91,9 +82,7 @@ public class EdgeDrawing {
       }
    }
    void getEdges(){
-      //  initial false=0
-      Mat isEdge=new Mat(m_originalImg.size(),CvType.CV_8UC1);
-      isEdge.setTo(new Scalar(0));
+      Mat isEdge=new Mat(m_originalImg.size(),CvType.CV_8UC1,new Scalar(0));//initial 0=false
       for(int i=0;i<m_anchor.size();i++){
          ArrayList<Point> edge=new ArrayList<>();
          int x = (int)m_anchor.get(i).x;
@@ -105,17 +94,17 @@ public class EdgeDrawing {
    }
 
    void searchFromAnchor(int x, int y,Mat isEdge,ArrayList<Point> edge){
-      //attention this use x,y axis x-> y|
+      //attention this use x,y axis direction
+      //range test
       if(x-1<0 || y-1<0 || x+1>=width || y+1>=height)
             return;
-      //GMap>0 & not edge
+      //GMap>0 & not have been added edge->avoid repeat
       if(m_gradientImg.get(y,x)[0]>0 && isEdge.get(y,x)[0]==0)
       {
          edge.add(new Point(x,y));
-         //change feature edge
-         isEdge.put(y,x,1);
+         isEdge.put(y,x,1);//isEdge modify as 1=true
 
-         if((byte)m_directionImg.get(y,x)[0]==HORIZONTAL) // 如果x,y横着走
+         if(m_directionImg.get(y,x)[0]==HORIZONTAL) // horizontal edge
          {
             // Go Left
             if(isEdge.get(y-1,x-1)[0]==0 && isEdge.get(y,x-1)[0]==0 &&isEdge.get(y+1,x-1)[0]==0)
@@ -142,7 +131,7 @@ public class EdgeDrawing {
                   searchFromAnchor(x+1,y,isEdge,edge);
             }
          }
-         else if((byte)m_directionImg.get(y,x)[0]==VERTICAL) // 如果x,y竖着走
+         else if(m_directionImg.get(y,x)[0]==VERTICAL) // vertical edge
          {
             // Go Top
             if(isEdge.get(y-1,x+1)[0]==0 && isEdge.get(y-1,x)[0]==0 && isEdge.get(y-1,x-1)[0]==0)

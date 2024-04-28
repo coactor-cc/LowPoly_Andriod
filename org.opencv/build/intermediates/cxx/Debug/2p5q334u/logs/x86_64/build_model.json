@@ -141,7 +141,7 @@
         "rootBuildGradleFolder": "C:\\Users\\coactor\\AndroidStudioProjects\\devtest",
         "sdkFolder": "C:\\Users\\coactor\\AppData\\Local\\Android\\Sdk",
         "isBuildOnlyTargetAbiEnabled": true,
-        "ideBuildTargetAbi": "x86_64,x86",
+        "ideBuildTargetAbi": "x86_64,arm64-v8a",
         "isCmakeBuildCohabitationEnabled": false,
         "isPrefabEnabled": false
       },

@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">devtest</string>
+    <string name="load">load</string>
+    <string name="share">share</string>
+    <string name="jump">Go</string>
+    <string name="blurKernel">Blur_r</string>
+    <string name="sobelThreshold">Sobel_t</string>
+    <string name="anchorThreshold">Anchor_t</string>
+    <string name="minimumDistance">Min_dist</string>
+    <string name="poissonRadius">Poisson_r</string>
+    <string name="value">Value</string>
+    <string name="bitNot">BitNot</string>
+    <string name="Blur">Blur</string>
+    <string name="Gray">Gray</string>
+    <string name="Voronoi">Voronoi</string>
+    <string name="Distance">Distance</string>
+    <string name="Sobel">Sobel</string>
+    <string name="ED">ED</string>
+    <string name="Poly">Poly</string>
 </resources>
